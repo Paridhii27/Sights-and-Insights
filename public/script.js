@@ -52,8 +52,13 @@ async function startCamera() {
 
     // Set text content first, then show the element
     if (cameraStatus) {
-      cameraStatus.textContent =
+      cameraStatus.innerHTML = "";
+      cameraStatus.className = "camera-status-message";
+      const messageText = document.createElement("p");
+      messageText.className = "status-message-text";
+      messageText.textContent =
         "Click anywhere on the video to capture an area you want to interact with more.";
+      cameraStatus.appendChild(messageText);
       // Use requestAnimationFrame to ensure the text is set before showing the element
       requestAnimationFrame(() => {
         cameraStatus.style.display = "block";
@@ -84,29 +89,114 @@ async function startCamera() {
   }
 }
 
+// Function to remove click indicator
+function removeClickIndicator() {
+  const existingIndicator = document.querySelector(".click-indicator");
+  if (existingIndicator) {
+    existingIndicator.style.opacity = "0";
+    existingIndicator.style.transform = "scale(0.8)";
+    setTimeout(() => {
+      if (existingIndicator.parentNode) {
+        existingIndicator.remove();
+      }
+    }, 300);
+  }
+}
+
+// Function to show click indicator on video
+function showClickIndicator(event) {
+  // Remove any existing click indicator
+  removeClickIndicator();
+
+  // Get video container and video element
+  const videoContainer = document.querySelector(".video-container");
+  if (!videoContainer || !videoElement) return;
+
+  const videoRect = videoElement.getBoundingClientRect();
+  const containerRect = videoContainer.getBoundingClientRect();
+
+  // Calculate click position relative to video element
+  const clickX = event.clientX - videoRect.left;
+  const clickY = event.clientY - videoRect.top;
+
+  // Size of the capture area (100px in video coordinates, scaled to display)
+  const squareSize = 100;
+  // Get video dimensions (use actual video dimensions if available, otherwise use display size)
+  const videoWidth = videoElement.videoWidth || videoRect.width;
+  const videoHeight = videoElement.videoHeight || videoRect.height;
+  const scaleX = videoRect.width / videoWidth;
+  const scaleY = videoRect.height / videoHeight;
+  const displaySize = squareSize * Math.max(scaleX, scaleY);
+  const halfSize = displaySize / 2;
+
+  // Create click indicator box
+  const indicator = document.createElement("div");
+  indicator.className = "click-indicator";
+
+  // Position the indicator relative to the video container
+  // Calculate position relative to container
+  const relativeX = clickX + (videoRect.left - containerRect.left);
+  const relativeY = clickY + (videoRect.top - containerRect.top);
+
+  indicator.style.left = `${relativeX - halfSize}px`;
+  indicator.style.top = `${relativeY - halfSize}px`;
+  indicator.style.width = `${displaySize}px`;
+  indicator.style.height = `${displaySize}px`;
+
+  // Add to video container
+  videoContainer.appendChild(indicator);
+  // Indicator will remain visible until removed by removeClickIndicator()
+}
+
 // Function to handle video click to capture snapshot
 function handleVideoClick(event) {
   console.log("Video clicked");
   if (stream) {
     // Only proceed if audio is not playing
     if (!isAudioPlaying) {
-      // Update camera status to show analyzing message
+      // Show click indicator
+      showClickIndicator(event);
+
+      // Update camera status to show loading bar
       if (cameraStatus) {
-        cameraStatus.textContent = "";
-        const loadingImage = document.createElement("img");
-        loadingImage.src = "./icons/loading.png";
-        loadingImage.alt = "Loading";
-        loadingImage.className = "loading-image";
+        cameraStatus.innerHTML = "";
+        cameraStatus.className = "camera-status-loading";
+
+        // Create loading bar container
+        const loadingContainer = document.createElement("div");
+        loadingContainer.className = "loading-container";
+
+        // Create loading text
+        const loadingText = document.createElement("p");
+        loadingText.className = "loading-text";
+        loadingText.textContent = "Analyzing your image...";
+
+        // Create loading bar
+        const loadingBar = document.createElement("div");
+        loadingBar.className = "loading-bar";
+
+        // Create loading bar fill
+        const loadingBarFill = document.createElement("div");
+        loadingBarFill.className = "loading-bar-fill";
+
+        loadingBar.appendChild(loadingBarFill);
+        loadingContainer.appendChild(loadingText);
+        loadingContainer.appendChild(loadingBar);
+        cameraStatus.appendChild(loadingContainer);
         cameraStatus.style.display = "block";
-        cameraStatus.appendChild(loadingImage);
       }
       captureSnapshot(event);
       console.log("Snapshot captured");
     } else {
       // Show message that analysis is disabled during audio playback
       if (cameraStatus) {
-        cameraStatus.textContent =
+        cameraStatus.innerHTML = "";
+        cameraStatus.className = "camera-status-message";
+        const messageText = document.createElement("p");
+        messageText.className = "status-message-text";
+        messageText.textContent =
           "Please wait for the audio to finish before capturing a new image";
+        cameraStatus.appendChild(messageText);
         cameraStatus.style.display = "block";
       }
     }
@@ -123,6 +213,9 @@ function stopCamera() {
 
   // Remove click event listener
   videoElement.removeEventListener("click", handleVideoClick);
+
+  // Remove click indicator
+  removeClickIndicator();
 
   // Get all tracks from the stream and stop each one
   stream.getTracks().forEach((track) => {
@@ -288,10 +381,77 @@ function createSnapshotElement(imageURL, caption, analysisText, audioURL) {
 
   // Create audio element if URL provided
   if (audioURL) {
-    const audio = document.createElement("audio");
-    audio.controls = true;
-    audio.src = audioURL;
-    snapshotDiv.appendChild(audio);
+    // Create custom audio player container
+    const audioPlayerContainer = document.createElement("div");
+    audioPlayerContainer.className = "custom-audio-player";
+
+    // Create hidden audio element for actual playback
+    const audioElement = document.createElement("audio");
+    audioElement.src = audioURL;
+    audioElement.className = "hidden-audio";
+
+    // Create play button
+    const playButton = document.createElement("button");
+    playButton.className = "audio-play-button";
+    playButton.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+      </svg>
+    `;
+    playButton.setAttribute("aria-label", "Play audio");
+
+    // Create waveform container
+    const waveformContainer = document.createElement("div");
+    waveformContainer.className = "audio-waveform";
+
+    // Create waveform bars
+    for (let i = 0; i < 40; i++) {
+      const bar = document.createElement("div");
+      bar.className = "waveform-bar";
+      waveformContainer.appendChild(bar);
+    }
+
+    // Add click handler to play button
+    playButton.addEventListener("click", () => {
+      if (audioElement.paused) {
+        audioElement.play();
+        playButton.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="4" width="4" height="16" fill="#65B2C2"/>
+            <rect x="14" y="4" width="4" height="16" fill="#65B2C2"/>
+          </svg>
+        `;
+        playButton.setAttribute("aria-label", "Pause audio");
+        animateWaveform(waveformContainer, true);
+      } else {
+        audioElement.pause();
+        playButton.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+          </svg>
+        `;
+        playButton.setAttribute("aria-label", "Play audio");
+        animateWaveform(waveformContainer, false);
+      }
+    });
+
+    // Reset button when audio ends
+    audioElement.addEventListener("ended", () => {
+      playButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+        </svg>
+      `;
+      playButton.setAttribute("aria-label", "Play audio");
+      animateWaveform(waveformContainer, false);
+    });
+
+    // Assemble audio player
+    audioPlayerContainer.appendChild(audioElement);
+    audioPlayerContainer.appendChild(playButton);
+    audioPlayerContainer.appendChild(waveformContainer);
+
+    snapshotDiv.appendChild(audioPlayerContainer);
   }
 
   // Add the snapshot to the page
@@ -366,7 +526,11 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
 
     const selectedMode = localStorage.getItem("selectedCategory") || "educate";
 
-    const response = await fetch("/api/analyze", {
+    // Check if test mode is enabled (skip audio)
+    const skipAudio = localStorage.getItem("skipAudio") === "true";
+    const apiUrl = skipAudio ? "/api/analyze?skipAudio=true" : "/api/analyze";
+
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -383,8 +547,9 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
 
     const data = await response.json();
     console.log("Analysis response received");
-    cameraStatus.textContent = "Listen...";
-    cameraStatus.style.display = "block";
+
+    // Remove click indicator when analysis completes
+    removeClickIndicator();
 
     // Create new analysis data
     const analysisData = {
@@ -403,40 +568,159 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
       resultElement.textContent = data.content || "No analysis available";
     }
 
-    // Play the audio if available on the camera page
-    if (data.audio) {
-      try {
-        const audioBlob = new Blob(
-          [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
-          { type: "audio/mpeg" }
-        );
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
+    // Update camera status with custom audio player or test mode message
+    if (cameraStatus) {
+      cameraStatus.innerHTML = "";
+      cameraStatus.className = "camera-status-message";
 
-        // Set flag when audio starts playing
-        isAudioPlaying = true;
+      // Show different message if audio was skipped (test mode)
+      if (!data.audio) {
+        const messageText = document.createElement("p");
+        messageText.className = "status-message-text";
+        messageText.textContent =
+          "Your insights are ready. Explore on the archive page";
+        cameraStatus.appendChild(messageText);
+        cameraStatus.style.display = "block";
+        console.log("⚠️  TEST MODE: Audio generation was skipped");
+      } else {
+        // Create custom audio player with waveform
+        try {
+          const audioBlob = new Blob(
+            [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
+            { type: "audio/mpeg" }
+          );
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audioElement = new Audio(audioUrl);
 
-        audio.play().catch((error) => {
-          console.error("Error playing audio:", error);
-          isAudioPlaying = false; // Reset flag if audio fails to play
-        });
+          // Create audio player container
+          const audioPlayerContainer = document.createElement("div");
+          audioPlayerContainer.className = "custom-audio-player";
 
-        audio.addEventListener("ended", () => {
-          isAudioPlaying = false; // Reset flag when audio ends
-          cameraStatus.textContent =
-            "Click again on the video feed to interact further";
-          console.log("Audio playback finished");
-        });
-      } catch (audioError) {
-        console.error("Error processing audio:", audioError);
-        isAudioPlaying = false; // Reset flag if there's an error
+          // Create hidden audio element
+          audioElement.className = "hidden-audio";
+          audioElement.setAttribute("preload", "auto");
+
+          // Create play button
+          const playButton = document.createElement("button");
+          playButton.className = "audio-play-button";
+          playButton.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 5V19L19 12L8 5Z" fill="#a6bb65"/>
+            </svg>
+          `;
+          playButton.setAttribute("aria-label", "Play audio");
+
+          // Create waveform container
+          const waveformContainer = document.createElement("div");
+          waveformContainer.className = "audio-waveform";
+
+          // Create waveform bars
+          for (let i = 0; i < 40; i++) {
+            const bar = document.createElement("div");
+            bar.className = "waveform-bar";
+            waveformContainer.appendChild(bar);
+          }
+
+          // Create engaging text
+          const messageText = document.createElement("p");
+          messageText.className = "status-message-text";
+          messageText.style.marginBottom = "10px";
+
+          // Add click handler to play button
+          playButton.addEventListener("click", () => {
+            if (audioElement.paused) {
+              audioElement.play();
+              playButton.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="4" width="4" height="16" fill="#a6bb65"/>
+                  <rect x="14" y="4" width="4" height="16" fill="#a6bb65"/>
+                </svg>
+              `;
+              playButton.setAttribute("aria-label", "Pause audio");
+              animateWaveform(waveformContainer, true);
+
+              isAudioPlaying = true;
+            } else {
+              audioElement.pause();
+              playButton.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 5V19L19 12L8 5Z" fill="#a6bb65"/>
+                </svg>
+              `;
+              playButton.setAttribute("aria-label", "Play audio");
+              animateWaveform(waveformContainer, false);
+
+              isAudioPlaying = false;
+            }
+          });
+
+          // Auto-play audio and update UI
+          audioElement.play().catch((error) => {
+            console.error("Error playing audio:", error);
+            isAudioPlaying = false;
+          });
+
+          // Set flag when audio starts playing
+          audioElement.addEventListener("play", () => {
+            isAudioPlaying = true;
+            playButton.innerHTML = `
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="4" width="4" height="16" fill="#a6bb65"/>
+                <rect x="14" y="4" width="4" height="16" fill="#a6bb65"/>
+              </svg>
+            `;
+            playButton.setAttribute("aria-label", "Pause audio");
+            animateWaveform(waveformContainer, true);
+          });
+
+          // Reset button when audio ends
+          audioElement.addEventListener("ended", () => {
+            isAudioPlaying = false;
+            playButton.innerHTML = `
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 5V19L19 12L8 5Z" fill="#a6bb65"/>
+              </svg>
+            `;
+            playButton.setAttribute("aria-label", "Play audio");
+            animateWaveform(waveformContainer, false);
+            messageText.textContent = "Click again to discover more";
+            console.log("Audio playback finished");
+          });
+
+          // Assemble audio player
+          cameraStatus.appendChild(messageText);
+          audioPlayerContainer.appendChild(audioElement);
+          audioPlayerContainer.appendChild(playButton);
+          audioPlayerContainer.appendChild(waveformContainer);
+          cameraStatus.appendChild(audioPlayerContainer);
+          cameraStatus.style.display = "block";
+        } catch (audioError) {
+          console.error("Error processing audio:", audioError);
+          isAudioPlaying = false;
+          const messageText = document.createElement("p");
+          messageText.className = "status-message-text";
+
+          cameraStatus.appendChild(messageText);
+          cameraStatus.style.display = "block";
+        }
       }
     }
   } catch (error) {
     console.error("Error analyzing image:", error);
+    // Remove click indicator on error
+    removeClickIndicator();
     if (resultElement) {
       resultElement.innerHTML = ""; // Clear loading state
       resultElement.textContent = "Error analyzing image. Please try again.";
+    }
+    if (cameraStatus) {
+      cameraStatus.innerHTML = "";
+      cameraStatus.className = "camera-status-message";
+      const messageText = document.createElement("p");
+      messageText.className = "status-message-text";
+      messageText.textContent = "Error analyzing image. Please try again.";
+      cameraStatus.appendChild(messageText);
+      cameraStatus.style.display = "block";
     }
     isAudioPlaying = false; // Reset flag if there's an error
   }
@@ -508,12 +792,78 @@ function displayAnalysisResults() {
       );
       const audioUrl = URL.createObjectURL(audioBlob);
 
-      // Create and append audio player to the snapshot container
-      const audioPlayer = document.createElement("audio");
-      audioPlayer.controls = true;
-      audioPlayer.src = audioUrl;
-      audioPlayer.className = "analysis-audio";
-      snapshotContainer.appendChild(audioPlayer);
+      // Create custom audio player container
+      const audioPlayerContainer = document.createElement("div");
+      audioPlayerContainer.className = "custom-audio-player";
+
+      // Create hidden audio element for actual playback
+      const audioElement = document.createElement("audio");
+      audioElement.src = audioUrl;
+      audioElement.className = "hidden-audio";
+
+      // Create play button
+      const playButton = document.createElement("button");
+      playButton.className = "audio-play-button";
+      playButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+        </svg>
+      `;
+      playButton.setAttribute("aria-label", "Play audio");
+
+      // Create waveform container
+      const waveformContainer = document.createElement("div");
+      waveformContainer.className = "audio-waveform";
+
+      // Create waveform bars
+      for (let i = 0; i < 40; i++) {
+        const bar = document.createElement("div");
+        bar.className = "waveform-bar";
+        waveformContainer.appendChild(bar);
+      }
+
+      // Add click handler to play button
+      playButton.addEventListener("click", () => {
+        if (audioElement.paused) {
+          audioElement.play();
+          playButton.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="6" y="4" width="4" height="16" fill="#65B2C2"/>
+              <rect x="14" y="4" width="4" height="16" fill="#65B2C2"/>
+            </svg>
+          `;
+          playButton.setAttribute("aria-label", "Pause audio");
+          animateWaveform(waveformContainer, true);
+        } else {
+          audioElement.pause();
+          playButton.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+            </svg>
+          `;
+          playButton.setAttribute("aria-label", "Play audio");
+          animateWaveform(waveformContainer, false);
+        }
+      });
+
+      // Reset button when audio ends
+      audioElement.addEventListener("ended", () => {
+        playButton.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5V19L19 12L8 5Z" fill="#65B2C2"/>
+          </svg>
+        `;
+        playButton.setAttribute("aria-label", "Play audio");
+        animateWaveform(waveformContainer, false);
+      });
+
+      // Assemble audio player
+      audioPlayerContainer.appendChild(audioElement);
+      audioPlayerContainer.appendChild(playButton);
+      audioPlayerContainer.appendChild(waveformContainer);
+
+      // Append audio player to the snapshot container (before analysis text)
+      snapshotContainer.appendChild(audioPlayerContainer);
     } catch (error) {
       console.error("Error creating audio player:", error);
     }
@@ -529,5 +879,40 @@ function displayAnalysisResults() {
   snapshotsContainer.appendChild(snapshotContainer);
 }
 
+// Function to animate waveform
+function animateWaveform(waveformContainer, isPlaying) {
+  const bars = waveformContainer.querySelectorAll(".waveform-bar");
+
+  if (!isPlaying) {
+    bars.forEach((bar) => {
+      bar.style.animation = "none";
+      bar.style.height = "8px";
+    });
+    return;
+  }
+
+  bars.forEach((bar, index) => {
+    const delay = index * 0.1;
+    const duration = 0.6 + Math.random() * 0.4;
+    const height = 8 + Math.random() * 24;
+
+    bar.style.animation = `waveform ${duration}s ease-in-out infinite`;
+    bar.style.animationDelay = `${delay}s`;
+    bar.style.height = `${height}px`;
+  });
+}
+
 // Use DOMContentLoaded to initialize the page
 document.addEventListener("DOMContentLoaded", initializePage);
+
+// Clean up click indicator when navigating away
+window.addEventListener("beforeunload", () => {
+  removeClickIndicator();
+});
+
+// Also clean up on page visibility change (when user switches tabs/apps)
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    removeClickIndicator();
+  }
+});

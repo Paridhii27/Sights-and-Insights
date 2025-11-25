@@ -25,35 +25,38 @@
   font-style: normal;
 }
 
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  justify-content: flex-start;
-}
+/* Body styles inherited from root.css - no overrides needed */
 
 h1 {
   font-family: "Madimi One", sans-serif;
   font-weight: 400;
   font-style: normal;
-  font-size: 35px;
-  margin: 15px;
+  font-size: clamp(28px, 8vw, 35px);
+  margin: 15px auto;
   margin-bottom: 5px;
   padding-left: 5px;
   padding-right: 5px;
-  /* max-width: 380px; */
+  max-width: 90%;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 #project-title {
   background-color: var(--light-green);
   border-radius: 25px;
-  padding: 10px;
- padding-left: 25px;
- padding-right:25px;
-  max-width: 380px;
+  padding: 10px 20px;
+  width: calc(100% - 40px);
+  max-width: 375px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 #sights {
   color: var(--bg-color);
+}
+
+#and {
+  color: var(--dark-green);
 }
 
 #insights {
@@ -62,13 +65,67 @@ h1 {
 
 .video-container {
   position: relative;
-  width: 90%;
-  height: calc(90% - 95px - 140px);
-  max-width: 640px;
-  margin: 10px 20px;
-  border: 5px solid var(--light-green);
+  width: calc(100% - 40px);
+  height: calc(90vh - 95px - 140px);
+  max-width: 375px;
+  max-height: 500px;
+  margin: 10px auto;
+  margin-bottom: 50px;
+  border: 3px solid var(--light-green);
   border-radius: 15px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .video-container {
+    width: calc(100% - 30px);
+    height: calc(85vh - 95px - 140px);
+    margin: 10px auto;
+  }
+
+  #camera-status {
+    width: calc(100% - 30px);
+    padding: 12px;
+    font-size: clamp(0.85em, 3vw, 0.95em);
+  }
+
+  #project-title {
+    width: calc(100% - 30px);
+    padding: 8px 15px;
+    font-size: clamp(24px, 7vw, 32px);
+  }
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
   overflow: hidden;
+}
+
+.click-indicator {
+  position: absolute;
+  border: 3px solid red;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  animation: click-indicator-appear 0.2s ease-out;
+  opacity: 1;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+@keyframes click-indicator-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 video {
@@ -80,22 +137,179 @@ video {
 
 #camera-status {
   font-family: "Lexend", sans-serif;
-  font-size: 1em;
+  font-size: clamp(0.9em, 3.5vw, 1em);
   color: var(--dark-text);
-  width: 355px;
-  height: 10%;
-  /* margin-bottom: 10px; */
-  padding-top: 10px;
-  /* padding: 10px; */
+  width: calc(100% - 40px);
+  max-width: 375px;
+  min-height: 80px;
+  margin: 0 auto 120px auto;
+  padding: 15px;
   background-color: var(--bg-color);
   border-radius: 15px;
-  border: 5px solid var(--light-green);
+  border: 3px solid var(--light-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-.loading-image {
-  width: 300px;
-  height: auto;
-  padding: 15px;
-  /* margin-bottom: 10px; */
-  animation: spin 1s linear infinite;
+#camera-status.camera-status-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#camera-status .status-message-text {
+  font-family: "Lexend", sans-serif;
+  font-size: 1em;
+  line-height: 1.5;
+  color: var(--dark-text);
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+#camera-status.camera-status-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+#camera-status .loading-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+#camera-status .loading-text {
+  font-family: "Lexend", sans-serif;
+  font-size: 1em;
+  color: var(--dark-text);
+  margin: 0;
+  text-align: center;
+}
+
+#camera-status .loading-bar {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  background-color: rgba(166, 187, 101, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+#camera-status .loading-bar-fill {
+  height: 100%;
+  background-color: var(--light-green);
+  border-radius: 4px;
+  width: 0%;
+  animation: loading-progress 4s ease-in-out infinite;
+}
+
+@keyframes loading-progress {
+  0% {
+    width: 0%;
+    transform: translateX(0);
+  }
+  50% {
+    width: 70%;
+    transform: translateX(0);
+  }
+  100% {
+    width: 100%;
+    transform: translateX(0);
+  }
+}
+
+.custom-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--bg-color);
+  border: none;
+  border-radius: 20px;
+  padding: 12px 15px;
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+.hidden-audio {
+  display: none;
+}
+
+.audio-play-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.audio-play-button:hover {
+  transform: scale(1.1);
+}
+
+.audio-play-button:active {
+  transform: scale(0.95);
+}
+
+.audio-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  width: 100%;
+}
+
+.waveform-bar {
+  flex: 1;
+  min-width: 2px;
+  background-color: var(--light-green);
+  border-radius: 2px;
+  height: 8px;
+  transition: height 0.3s ease;
+}
+
+@keyframes waveform {
+  0%,
+  100% {
+    height: 8px;
+  }
+  50% {
+    height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-audio-player {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .audio-play-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .audio-waveform {
+    gap: 1px;
+  }
 }

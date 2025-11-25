@@ -3,12 +3,27 @@ const educateButton = document.getElementById("option-educate");
 const speculateButton = document.getElementById("option-speculate");
 const mindfulButton = document.getElementById("option-mindful");
 const funnyButton = document.getElementById("option-funny");
+const testModeCheckbox = document.getElementById("test-mode-checkbox");
 
 // Load saved category on page load
 document.addEventListener("DOMContentLoaded", () => {
   const savedCategory = localStorage.getItem("selectedCategory") || "educate";
   setActiveCategory(savedCategory);
+
+  // Load test mode setting
+  const skipAudio = localStorage.getItem("skipAudio") === "true";
+  if (testModeCheckbox) {
+    testModeCheckbox.checked = skipAudio;
+  }
 });
+
+// Handle test mode toggle
+if (testModeCheckbox) {
+  testModeCheckbox.addEventListener("change", (e) => {
+    localStorage.setItem("skipAudio", e.target.checked ? "true" : "false");
+    console.log("Test mode:", e.target.checked ? "enabled" : "disabled");
+  });
+}
 
 // Function to set active category
 function setActiveCategory(category) {

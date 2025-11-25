@@ -1,18 +1,40 @@
 .navbar {
   /* background-color: var(--bottom-bar-bg); */
-
   bottom: 15px;
-  position: absolute;
-
-  width: 100%;
-  max-width: 350px;
+  position: fixed;
+  width: calc(100% - 30px);
+  max-width: 375px;
+  left: 50%;
+  transform: translateX(-50%);
   border-radius: 50px;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 15px;
-  padding-bottom: 10px; /* some needed conpensation for position, I dont know why */
-  /* margin: 15px; */
+  padding: 12px 15px;
+  padding-bottom: 10px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    width: calc(100% - 20px);
+    padding: 10px 12px;
+    bottom: 10px;
+  }
+
+  .nav-item {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-item svg {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 .nav-item {

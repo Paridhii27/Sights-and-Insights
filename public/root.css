@@ -27,22 +27,38 @@
 }
 
 html {
-  /* display: flex; */
-  justify-content: center;
+  width: 100%;
+  height: 100%;
   background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 body {
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
   display: flex;
   width: 100%;
   max-width: 415px;
-  height: 100vh;
-  max-height: 850px;
-  align-items: center;
+  min-height: 100vh;
+  align-items: flex-start;
   flex-direction: column;
-  justify-content: center;
-  margin: 0 auto;
+  justify-content: flex-start;
   background-color: var(--bg-color);
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  html {
+    display: block;
+  }
+
+  body {
+    max-width: 100%;
+    width: 100%;
+  }
 }

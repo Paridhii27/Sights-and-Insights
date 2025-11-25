@@ -10,19 +10,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Paridhii27/AI-in-Nature.git"
+    "url": "git+https://github.com/Paridhii27/Sights-and-Insights.git"
   },
   "keywords": [
     "podcast",
     "nature",
     "interactions"
   ],
-  "author": "Paridhi Garg, Christine Chang",
+  "author": "Paridhi Garg",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Paridhii27/AI-in-Nature/issues"
+    "url": "https://github.com/Paridhii27/Sights-and-Insights/issues"
   },
-  "homepage": "https://github.com/Paridhii27/AI-in-Nature#readme",
+  "homepage": "https://github.com/Paridhii27/Sights-and-Insights#readme",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
