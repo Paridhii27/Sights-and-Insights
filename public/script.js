@@ -759,6 +759,17 @@ function displayAnalysisResults() {
     noDataMsg.className = "no-data-message";
     noDataMsg.textContent =
       "No analysis results available. Capture an image on the camera page first.";
+    noDataMsg.style.textAlign = "center";
+    noDataMsg.style.marginTop = "20px";
+    noDataMsg.style.fontFamily = "Lexend, sans-serif";
+    noDataMsg.style.fontSize = "1rem";
+    noDataMsg.style.color = "var(--dark-text)";
+    noDataMsg.style.padding = "20px";
+    noDataMsg.style.borderRadius = "15px";
+    noDataMsg.style.border = "3px solid var(--primary-blue)";
+    noDataMsg.style.backgroundColor = "var(--bg-color)";
+    noDataMsg.style.boxSizing = "border-box";
+    noDataMsg.style.overflowWrap = "break-word";
     snapshotsContainer.appendChild(noDataMsg);
     return;
   }
