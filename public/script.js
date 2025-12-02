@@ -542,7 +542,12 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
     const data = await response.json();

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { ElevenLabsClient, stream } from "elevenlabs";
+import { ElevenLabsClient } from "elevenlabs";
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -18,6 +18,14 @@ const PORT = process.env.PORT || 6001;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 app.use(express.static(join(__dirname, "public")));
+
+// Validate API keys
+if (!process.env.OPENAI_API_KEY) {
+  console.error("⚠️  WARNING: OPENAI_API_KEY is not set");
+}
+if (!process.env.ELEVENLABS_API_KEY) {
+  console.error("⚠️  WARNING: ELEVENLABS_API_KEY is not set");
+}
 
 //Initializing API clients
 const client = new OpenAI({
@@ -143,7 +151,23 @@ app.post("/api/analyze", async (req, res) => {
     });
   } catch (error) {
     console.error("Error calling the API:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error stack:", error.stack);
+    console.error("Error details:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+    });
+
+    // Provide more detailed error information
+    const errorMessage =
+      process.env.NODE_ENV === "production"
+        ? "An error occurred while analyzing the image. Please try again."
+        : error.message;
+
+    res.status(500).json({
+      error: errorMessage,
+      details: process.env.NODE_ENV !== "production" ? error.stack : undefined,
+    });
   }
 });
 
