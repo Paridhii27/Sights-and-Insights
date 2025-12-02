@@ -62,7 +62,7 @@ h2 {
   font-size: clamp(24px, 7vw, 32px);
   color: var(--dark-text);
   margin-top: 0px;
-  margin-bottom: 0px;
+  margin-bottom: 10px;
   text-align: left;
   word-wrap: break-word;
 }
@@ -87,7 +87,7 @@ h2 {
   align-self: flex-start;
   text-align: left;
   width: 100%;
-  margin-bottom: 0px;
+  margin-bottom: 10px;
 }
 
 .category-buttons {
