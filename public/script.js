@@ -564,8 +564,12 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
       audioUrl: data.audio,
     };
 
-    // Store only the latest analysis
-    localStorage.setItem("analysisResults", JSON.stringify([analysisData]));
+    // Store last 3 analyses (keep only the most recent 3)
+    const existingAnalyses = JSON.parse(
+      localStorage.getItem("analysisResults") || "[]"
+    );
+    const updatedAnalyses = [analysisData, ...existingAnalyses].slice(0, 3);
+    localStorage.setItem("analysisResults", JSON.stringify(updatedAnalyses));
 
     // Display the analysis in the result element
     if (resultElement) {
@@ -731,35 +735,29 @@ async function analyzeImage(imageData, resultElement, fullImageURL = null) {
   }
 }
 
-function displayAnalysisResults() {
-  const analysisResultElement = document.getElementById("analysisResult");
-  const snapshotsContainer = document.getElementById("snapshots");
+let currentSelectedIndex = 0;
+let currentAudioElement = null;
 
-  if (!snapshotsContainer) {
-    console.error("Snapshots container not found on archive page");
+function displayAnalysisResults() {
+  const snapshotsContainer = document.getElementById("snapshots");
+  const carouselContainer = document.getElementById("image-carousel-container");
+  const carousel = document.getElementById("image-carousel");
+
+  if (!snapshotsContainer || !carousel) {
+    console.error("Required containers not found on archive page");
     return;
   }
 
   // Clear existing content
-  if (snapshotsContainer) {
-    snapshotsContainer.innerHTML = "";
-  }
+  snapshotsContainer.innerHTML = "";
+  carousel.innerHTML = "";
 
-  if (analysisResultElement) {
-    analysisResultElement.innerHTML = "";
-  }
-
-  // Get the latest analysis
+  // Get all saved analyses (up to 3)
   const savedAnalyses = JSON.parse(
     localStorage.getItem("analysisResults") || "[]"
   );
 
-  // Get the first (and only) analysis instead of storing multiple analyses which fill up the local storage
-  const latestAnalysis = savedAnalyses[0];
-
-  console.log("Displaying latest analysis");
-
-  if (!latestAnalysis) {
+  if (savedAnalyses.length === 0) {
     const noDataMsg = document.createElement("div");
     noDataMsg.className = "no-data-message";
     noDataMsg.textContent =
@@ -776,34 +774,117 @@ function displayAnalysisResults() {
     noDataMsg.style.boxSizing = "border-box";
     noDataMsg.style.overflowWrap = "break-word";
     snapshotsContainer.appendChild(noDataMsg);
+    carouselContainer.style.display = "none";
     return;
   }
+
+  carouselContainer.style.display = "block";
+  currentSelectedIndex = 0;
+
+  // Create carousel images
+  savedAnalyses.forEach((analysis, index) => {
+    const imageWrapper = document.createElement("div");
+    imageWrapper.className = "carousel-image-wrapper";
+    if (index === 0) {
+      imageWrapper.classList.add("active");
+    }
+    imageWrapper.dataset.index = index;
+
+    const img = document.createElement("img");
+    img.src = analysis.image;
+    img.className = "carousel-image";
+    imageWrapper.appendChild(img);
+
+    // Add click handler
+    imageWrapper.addEventListener("click", () => {
+      selectAnalysis(index);
+    });
+
+    carousel.appendChild(imageWrapper);
+  });
+
+  // Handle scroll to detect which image is in view
+  let scrollTimeout;
+  carouselContainer.addEventListener("scroll", () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const containerRect = carouselContainer.getBoundingClientRect();
+      const images = carousel.querySelectorAll(".carousel-image-wrapper");
+
+      images.forEach((imgWrapper, index) => {
+        const imgRect = imgWrapper.getBoundingClientRect();
+        const imgCenter = imgRect.left + imgRect.width / 2;
+        const containerCenter = containerRect.left + containerRect.width / 2;
+
+        // If image is centered (within 50px), select it
+        if (Math.abs(imgCenter - containerCenter) < 50) {
+          selectAnalysis(index);
+        }
+      });
+    }, 100);
+  });
+
+  // Display the first analysis by default
+  displaySelectedAnalysis(savedAnalyses[0], snapshotsContainer);
+}
+
+function selectAnalysis(index) {
+  const savedAnalyses = JSON.parse(
+    localStorage.getItem("analysisResults") || "[]"
+  );
+
+  if (index < 0 || index >= savedAnalyses.length) return;
+
+  currentSelectedIndex = index;
+
+  // Update active state in carousel
+  const images = document.querySelectorAll(".carousel-image-wrapper");
+  images.forEach((imgWrapper, i) => {
+    if (i === index) {
+      imgWrapper.classList.add("active");
+      // Scroll to center the selected image
+      const carouselContainer = document.getElementById(
+        "image-carousel-container"
+      );
+      const imgRect = imgWrapper.getBoundingClientRect();
+      const containerRect = carouselContainer.getBoundingClientRect();
+      const scrollLeft =
+        imgWrapper.offsetLeft - containerRect.width / 2 + imgRect.width / 2;
+      carouselContainer.scrollTo({ left: scrollLeft, behavior: "smooth" });
+    } else {
+      imgWrapper.classList.remove("active");
+    }
+  });
+
+  // Stop current audio if playing
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement.currentTime = 0;
+  }
+
+  // Display selected analysis
+  const snapshotsContainer = document.getElementById("snapshots");
+  displaySelectedAnalysis(savedAnalyses[index], snapshotsContainer);
+}
+
+function displaySelectedAnalysis(analysis, container) {
+  container.innerHTML = "";
 
   // Create snapshot container
   const snapshotContainer = document.createElement("div");
   snapshotContainer.className = "snapshot-container";
 
-  // Create and append image
-  const img = document.createElement("img");
-  img.src = latestAnalysis.image;
-  img.className = "snapshot-image";
-  snapshotContainer.appendChild(img);
-
   // Create and append timestamp
   const timestamp = document.createElement("div");
   timestamp.className = "snapshot-timestamp";
-  timestamp.textContent = latestAnalysis.timestamp;
+  timestamp.textContent = analysis.timestamp;
   snapshotContainer.appendChild(timestamp);
 
   // Add audio player if available
-  if (latestAnalysis.audioUrl) {
+  if (analysis.audioUrl) {
     try {
       const audioBlob = new Blob(
-        [
-          Uint8Array.from(atob(latestAnalysis.audioUrl), (c) =>
-            c.charCodeAt(0)
-          ),
-        ],
+        [Uint8Array.from(atob(analysis.audioUrl), (c) => c.charCodeAt(0))],
         { type: "audio/mpeg" }
       );
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -816,6 +897,7 @@ function displayAnalysisResults() {
       const audioElement = document.createElement("audio");
       audioElement.src = audioUrl;
       audioElement.className = "hidden-audio";
+      currentAudioElement = audioElement;
 
       // Create play button
       const playButton = document.createElement("button");
@@ -878,21 +960,19 @@ function displayAnalysisResults() {
       audioPlayerContainer.appendChild(playButton);
       audioPlayerContainer.appendChild(waveformContainer);
 
-      // Append audio player to the snapshot container (before analysis text)
       snapshotContainer.appendChild(audioPlayerContainer);
     } catch (error) {
       console.error("Error creating audio player:", error);
     }
   }
 
-  // Create and append analysis text with scrolling
+  // Create and append analysis text
   const analysisText = document.createElement("div");
   analysisText.className = "analysis-text";
-  analysisText.textContent = latestAnalysis.analysis;
+  analysisText.textContent = analysis.analysis;
   snapshotContainer.appendChild(analysisText);
 
-  // Append snapshot container to show the analysis on archive page
-  snapshotsContainer.appendChild(snapshotContainer);
+  container.appendChild(snapshotContainer);
 }
 
 // Function to animate waveform
