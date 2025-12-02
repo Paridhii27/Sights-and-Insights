@@ -19,29 +19,116 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 app.use(express.static(join(__dirname, "public")));
 
-// Validate API keys
-if (!process.env.OPENAI_API_KEY) {
+// Validate and trim API keys
+const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY?.trim();
+
+if (!openaiApiKey) {
   console.error("⚠️  WARNING: OPENAI_API_KEY is not set");
+} else {
+  console.log("✅ OPENAI_API_KEY is set (length:", openaiApiKey.length + ")");
 }
-if (!process.env.ELEVENLABS_API_KEY) {
+
+if (!elevenlabsApiKey) {
   console.error("⚠️  WARNING: ELEVENLABS_API_KEY is not set");
+} else {
+  console.log(
+    "✅ ELEVENLABS_API_KEY is set (length:",
+    elevenlabsApiKey.length + ")"
+  );
+  // Log first and last 4 chars for debugging (without exposing full key)
+  const keyPreview =
+    elevenlabsApiKey.length > 8
+      ? `${elevenlabsApiKey.substring(0, 4)}...${elevenlabsApiKey.substring(
+          elevenlabsApiKey.length - 4
+        )}`
+      : "***";
+  console.log("   Key preview:", keyPreview);
 }
 
 //Initializing API clients
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: openaiApiKey,
 });
 
-const soundClient = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-});
+// const soundClient = new ElevenLabsClient({
+//   apiKey: process.env.ELEVENLABS_API_KEY,
+// });
+
+let soundClient = null;
+function getElevenLabsClient() {
+  if (!soundClient) {
+    // Try to get the key from env again (in case it wasn't loaded at startup)
+    const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
+
+    if (!apiKey) {
+      console.error("❌ ELEVENLABS_API_KEY is not available");
+      return null;
+    }
+
+    console.log(
+      "🔑 Initializing ElevenLabs client with API key (length:",
+      apiKey.length + ")"
+    );
+    soundClient = new ElevenLabsClient({
+      apiKey: apiKey,
+    });
+  }
+  return soundClient;
+}
 
 app.get("/", (req, res) => {
   res.send("Starting");
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "health ok" });
+  res.status(200).json({
+    status: "health ok",
+    openaiConfigured: !!openaiApiKey,
+    elevenlabsConfigured: !!elevenlabsApiKey,
+  });
+});
+
+// Test endpoint to verify ElevenLabs API key
+app.get("/api/test-elevenlabs", async (req, res) => {
+  try {
+    const audioClient = getElevenLabsClient();
+    if (!audioClient) {
+      return res.status(500).json({
+        error: "ElevenLabs API key is not configured",
+        apiKeySet: !!elevenlabsApiKey,
+        apiKeyLength: elevenlabsApiKey?.length || 0,
+      });
+    }
+
+    // Try a simple API call to verify the key works
+    // Using a very short test text
+    const testStream = await audioClient.textToSpeech.convertAsStream(
+      "Yko7PKHZNXotIFUBG7I9", // Default voice
+      {
+        text: "Test",
+        model_id: "eleven_multilingual_v2",
+        output_format: "mp3_44100_128",
+      }
+    );
+
+    // Just verify we can start the stream
+    const firstChunk = await testStream.next();
+
+    res.json({
+      success: true,
+      message: "ElevenLabs API key is valid",
+      apiKeyLength: elevenlabsApiKey?.length || 0,
+    });
+  } catch (error) {
+    console.error("ElevenLabs test error:", error);
+    res.status(500).json({
+      error: error.message,
+      statusCode: error.statusCode,
+      apiKeySet: !!elevenlabsApiKey,
+      apiKeyLength: elevenlabsApiKey?.length || 0,
+    });
+  }
 });
 
 app.post("/api/analyze", async (req, res) => {
@@ -128,7 +215,14 @@ app.post("/api/analyze", async (req, res) => {
 
     // Try to generate audio, but don't fail if it errors
     try {
-      const audioStream = await soundClient.textToSpeech.convertAsStream(
+      // Get client lazily (ensures API key is available)
+      const audioClient = getElevenLabsClient();
+      if (!audioClient) {
+        throw new Error("ElevenLabs API key is not configured");
+      }
+
+      console.log("🎵 Attempting audio generation with voice:", voiceId);
+      const audioStream = await audioClient.textToSpeech.convertAsStream(
         voiceId,
         {
           text: content,
