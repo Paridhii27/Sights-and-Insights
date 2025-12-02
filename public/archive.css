@@ -58,6 +58,11 @@ h1 {
   scroll-behavior: smooth;
 }
 
+.image-carousel-container.single-image {
+  overflow-x: hidden;
+  justify-content: center;
+}
+
 .image-carousel-container::-webkit-scrollbar {
   display: none;
 }
@@ -68,6 +73,12 @@ h1 {
   padding: 10px 20px;
   align-items: center;
   min-width: min-content;
+}
+
+.image-carousel.single-image {
+  justify-content: center;
+  width: 100%;
+  padding: 10px 0;
 }
 
 .carousel-image-wrapper {
@@ -93,6 +104,11 @@ h1 {
 .carousel-image-wrapper:not(.active) {
   opacity: 0.6;
   transform: scale(0.95);
+}
+
+.image-carousel.single-image .carousel-image-wrapper {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .carousel-image-wrapper:active {
@@ -123,9 +139,9 @@ h2 {
 .snapshots {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   padding: 15px;
-  padding-top: 20px;
+  padding-top: 15px;
   padding-bottom: 120px;
   width: calc(100% - 40px);
   max-width: 375px;
@@ -143,7 +159,7 @@ h2 {
   padding-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
   word-wrap: break-word;
@@ -170,7 +186,8 @@ h2 {
   font-family: "Lexend", sans-serif;
   font-size: 0.9em;
   color: var(--dark-text);
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+  margin-top: -25px;
   text-align: center;
 }
 
@@ -183,7 +200,7 @@ h2 {
   border-radius: 10px;
 }
 
-.analysis-text {
+/* .analysis-text {
   font-family: "Lexend", sans-serif;
   font-size: clamp(0.9em, 3.5vw, 1em);
   line-height: 1.6;
@@ -196,8 +213,29 @@ h2 {
   border-radius: 10px;
   border: 3px solid var(--primary-blue);
   padding: 15px 20px;
-  margin-top: 10px;
+  margin-top: 5px;
   background-color: var(--bg-color);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+} */
+
+.analysis-text {
+  font-family: "Lexend", sans-serif;
+  font-size: clamp(0.9em, 3.5vw, 1em);
+  line-height: 1.6;
+  color: var(--bg-color);
+  max-height: 190px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-color) var(--bg-color);
+  border-radius: 10px;
+  border: 3px solid var(--primary-blue);
+  padding: 15px 20px;
+  margin-top: 5px;
+  background-color: var(--primary-blue);
+  color: var(--bg-color);
   word-wrap: break-word;
   overflow-wrap: break-word;
   box-sizing: border-box;
@@ -230,7 +268,7 @@ h2 {
   border: 3px solid var(--primary-blue);
   border-radius: 20px;
   padding: 12px 15px;
-  margin-top: 10px;
+  margin-top: 5px;
   width: 100%;
   box-sizing: border-box;
   min-height: 44px;

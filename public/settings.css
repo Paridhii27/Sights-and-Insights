@@ -32,18 +32,16 @@ h1 {
   font-weight: 400;
   font-style: normal;
   font-size: clamp(28px, 8vw, 35px);
-  text-align: center;
   width: calc(100% - 40px);
   max-width: 375px;
   margin: 15px auto;
-  margin-bottom: 5px;
   background-color: var(--primary-yellow);
   color: var(--bg-color);
   border-radius: 25px;
-  padding: 10px 20px;
-  padding-top: 0px;
+  padding: 0px 0px 10px 0px;
   box-sizing: border-box;
   word-wrap: break-word;
+  text-align: center;
 }
 
 h2 {
@@ -255,8 +253,6 @@ button.active {
   h1 {
     font-size: clamp(24px, 7vw, 32px);
     padding: 8px 15px;
-    /* margin: 10px auto;
-    width: calc(100% - 30px); */
   }
 
   h2 {

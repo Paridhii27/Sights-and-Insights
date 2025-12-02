@@ -25,8 +25,6 @@
   font-style: normal;
 }
 
-/* Body styles inherited from root.css - no overrides needed */
-
 h1 {
   font-family: "Madimi One", sans-serif;
   font-weight: 400;
@@ -47,7 +45,7 @@ h1 {
   padding: 10px 20px;
   width: calc(100% - 40px);
   max-width: 375px;
-  margin: 0 auto;
+  margin: 15px auto;
   box-sizing: border-box;
 }
 

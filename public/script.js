@@ -781,6 +781,15 @@ function displayAnalysisResults() {
   carouselContainer.style.display = "block";
   currentSelectedIndex = 0;
 
+  // Add class to center if only one image
+  if (savedAnalyses.length === 1) {
+    carouselContainer.classList.add("single-image");
+    carousel.classList.add("single-image");
+  } else {
+    carouselContainer.classList.remove("single-image");
+    carousel.classList.remove("single-image");
+  }
+
   // Create carousel images
   savedAnalyses.forEach((analysis, index) => {
     const imageWrapper = document.createElement("div");
@@ -803,26 +812,28 @@ function displayAnalysisResults() {
     carousel.appendChild(imageWrapper);
   });
 
-  // Handle scroll to detect which image is in view
-  let scrollTimeout;
-  carouselContainer.addEventListener("scroll", () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      const containerRect = carouselContainer.getBoundingClientRect();
-      const images = carousel.querySelectorAll(".carousel-image-wrapper");
+  // Handle scroll to detect which image is in view (only if multiple images)
+  if (savedAnalyses.length > 1) {
+    let scrollTimeout;
+    carouselContainer.addEventListener("scroll", () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const containerRect = carouselContainer.getBoundingClientRect();
+        const images = carousel.querySelectorAll(".carousel-image-wrapper");
 
-      images.forEach((imgWrapper, index) => {
-        const imgRect = imgWrapper.getBoundingClientRect();
-        const imgCenter = imgRect.left + imgRect.width / 2;
-        const containerCenter = containerRect.left + containerRect.width / 2;
+        images.forEach((imgWrapper, index) => {
+          const imgRect = imgWrapper.getBoundingClientRect();
+          const imgCenter = imgRect.left + imgRect.width / 2;
+          const containerCenter = containerRect.left + containerRect.width / 2;
 
-        // If image is centered (within 50px), select it
-        if (Math.abs(imgCenter - containerCenter) < 50) {
-          selectAnalysis(index);
-        }
-      });
-    }, 100);
-  });
+          // If image is centered (within 50px), select it
+          if (Math.abs(imgCenter - containerCenter) < 50) {
+            selectAnalysis(index);
+          }
+        });
+      }, 100);
+    });
+  }
 
   // Display the first analysis by default
   displaySelectedAnalysis(savedAnalyses[0], snapshotsContainer);
