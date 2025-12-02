@@ -25,25 +25,10 @@ const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY?.trim();
 
 if (!openaiApiKey) {
   console.error("⚠️  WARNING: OPENAI_API_KEY is not set");
-} else {
-  console.log("✅ OPENAI_API_KEY is set (length:", openaiApiKey.length + ")");
 }
 
 if (!elevenlabsApiKey) {
   console.error("⚠️  WARNING: ELEVENLABS_API_KEY is not set");
-} else {
-  console.log(
-    "✅ ELEVENLABS_API_KEY is set (length:",
-    elevenlabsApiKey.length + ")"
-  );
-  // Log first and last 4 chars for debugging (without exposing full key)
-  const keyPreview =
-    elevenlabsApiKey.length > 8
-      ? `${elevenlabsApiKey.substring(0, 4)}...${elevenlabsApiKey.substring(
-          elevenlabsApiKey.length - 4
-        )}`
-      : "***";
-  console.log("   Key preview:", keyPreview);
 }
 
 //Initializing API clients
@@ -51,14 +36,9 @@ const client = new OpenAI({
   apiKey: openaiApiKey,
 });
 
-// const soundClient = new ElevenLabsClient({
-//   apiKey: process.env.ELEVENLABS_API_KEY,
-// });
-
 let soundClient = null;
 function getElevenLabsClient() {
   if (!soundClient) {
-    // Try to get the key from env again (in case it wasn't loaded at startup)
     const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
 
     if (!apiKey) {
@@ -66,10 +46,6 @@ function getElevenLabsClient() {
       return null;
     }
 
-    console.log(
-      "🔑 Initializing ElevenLabs client with API key (length:",
-      apiKey.length + ")"
-    );
     soundClient = new ElevenLabsClient({
       apiKey: apiKey,
     });
@@ -253,10 +229,6 @@ app.post("/api/analyze", async (req, res) => {
         throw new Error("ElevenLabs API key is not configured");
       }
 
-      const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
-      console.log("🎵 Attempting audio generation with voice:", voiceId);
-      console.log("🔑 Using API key (length:", (apiKey?.length || 0) + ")");
-
       const audioStream = await audioClient.textToSpeech.convertAsStream(
         voiceId,
         {
@@ -287,25 +259,13 @@ app.post("/api/analyze", async (req, res) => {
         audioError.statusCode || audioError.status || "unknown";
       const errorMessage = audioError.message || "Unknown error";
 
-      console.error("⚠️  Audio generation failed, returning text only");
-      console.error("   Status code:", statusCode);
-      console.error("   Error message:", errorMessage);
+      console.error("⚠️  Audio generation failed:", errorMessage);
 
       // Provide helpful error messages based on status code
       let userFriendlyError = "Audio generation unavailable";
       if (statusCode === 401) {
         userFriendlyError =
-          "ElevenLabs API authentication failed. Please check:\n" +
-          "1. API key permissions are enabled in ElevenLabs dashboard\n" +
-          "2. Your subscription plan supports Text-to-Speech\n" +
-          "3. API key is correctly set in Render environment variables";
-        console.error("❌ 401 Unauthorized - Possible causes:");
-        console.error("   - API key permissions not enabled");
-        console.error(
-          "   - Free plan doesn't support TTS (need Creator plan+)"
-        );
-        console.error("   - IP restrictions blocking Render");
-        console.error("   - Invalid or expired API key");
+          "ElevenLabs API authentication failed. Please check API key permissions and subscription plan.";
       } else if (statusCode === 429) {
         userFriendlyError = "Rate limit exceeded. Please try again later.";
       } else if (statusCode === 402) {
@@ -324,13 +284,10 @@ app.post("/api/analyze", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error calling the API:", error);
-    console.error("Error stack:", error.stack);
-    console.error("Error details:", {
-      message: error.message,
-      name: error.name,
-      code: error.code,
-    });
+    console.error("Error calling the API:", error.message);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Error stack:", error.stack);
+    }
 
     // Provide more detailed error information
     const errorMessage =
