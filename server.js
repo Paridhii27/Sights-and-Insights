@@ -122,33 +122,57 @@ app.post("/api/analyze", async (req, res) => {
       return res.json({
         content: content,
         audio: null,
+        skipAudio: true,
       });
     }
 
-    const audioStream = await soundClient.textToSpeech.convertAsStream(
-      voiceId,
-      {
-        text: content,
-        model_id: "eleven_multilingual_v2",
-        output_format: "mp3_44100_128",
+    // Try to generate audio, but don't fail if it errors
+    try {
+      const audioStream = await soundClient.textToSpeech.convertAsStream(
+        voiceId,
+        {
+          text: content,
+          model_id: "eleven_multilingual_v2",
+          output_format: "mp3_44100_128",
+        }
+      );
+
+      // Collect all chunks of audio data
+      const chunks = [];
+      for await (const chunk of audioStream) {
+        chunks.push(Buffer.from(chunk));
       }
-    );
 
-    // Collect all chunks of audio data
-    const chunks = [];
-    for await (const chunk of audioStream) {
-      chunks.push(Buffer.from(chunk));
+      // Create audio buffer and convert to base64
+      const audioBuffer = Buffer.concat(chunks);
+      const audioBase64 = audioBuffer.toString("base64");
+
+      // Return both text and audio
+      return res.json({
+        content: content,
+        audio: audioBase64,
+      });
+    } catch (audioError) {
+      // If audio generation fails (e.g., invalid API key), still return the text
+      console.error(
+        "⚠️  Audio generation failed, returning text only:",
+        audioError.message
+      );
+      console.error("Audio error details:", {
+        statusCode: audioError.statusCode,
+        message: audioError.message,
+      });
+
+      // Return text content even if audio fails
+      return res.json({
+        content: content,
+        audio: null,
+        audioError:
+          process.env.NODE_ENV === "production"
+            ? "Audio generation unavailable"
+            : audioError.message,
+      });
     }
-
-    // Create audio buffer and convert to base64
-    const audioBuffer = Buffer.concat(chunks);
-    const audioBase64 = audioBuffer.toString("base64");
-
-    // Return both text and audio
-    res.json({
-      content: content,
-      audio: audioBase64,
-    });
   } catch (error) {
     console.error("Error calling the API:", error);
     console.error("Error stack:", error.stack);
