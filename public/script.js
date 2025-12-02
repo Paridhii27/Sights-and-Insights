@@ -485,7 +485,7 @@ function initializePage() {
     window.location.pathname === "/" ||
     window.location.pathname === ""
   ) {
-    console.log("Camera page detected, starting camera automatically");
+    console.log("Camera page detected");
 
     // Make sure the video element exists
     if (videoElement) {
@@ -494,14 +494,46 @@ function initializePage() {
       videoElement.setAttribute("playsinline", ""); // Important for iOS
       videoElement.setAttribute("muted", "");
 
-      // Start camera automatically
-      startCamera().catch((error) => {
-        console.error("Failed to start camera during page init:", error);
-        if (errorMessage) {
-          errorMessage.textContent =
-            "Failed to start camera. Please check permissions.";
-        }
-      });
+      // Check if user is coming from index.html
+      const fromIndex = sessionStorage.getItem("fromIndex") === "true";
+      const cameraPermissionRequested =
+        sessionStorage.getItem("cameraPermissionRequested") === "true";
+
+      // Only request camera permission if coming from index.html
+      if (fromIndex) {
+        console.log("Coming from index.html - requesting camera permission");
+
+        // Clear the fromIndex flag after using it
+        sessionStorage.removeItem("fromIndex");
+
+        // Mark that permission was requested
+        sessionStorage.setItem("cameraPermissionRequested", "true");
+
+        // Start camera automatically
+        startCamera().catch((error) => {
+          console.error("Failed to start camera during page init:", error);
+          if (errorMessage) {
+            errorMessage.textContent =
+              "Failed to start camera. Please check permissions.";
+          }
+        });
+      } else if (cameraPermissionRequested) {
+        // Permission was already requested before, try to start camera silently
+        // Browser will reuse permission if granted, won't show prompt again
+        console.log(
+          "Camera permission was already requested - starting camera silently"
+        );
+        startCamera().catch((error) => {
+          console.log(
+            "Camera not available (user may have denied permission or camera is in use)"
+          );
+          // Don't show error message if permission was denied - user already made their choice
+        });
+      } else {
+        console.log(
+          "First visit to camera page (not from index) - camera will start on user interaction"
+        );
+      }
     } else {
       console.error("Video element not found on camera page");
     }
