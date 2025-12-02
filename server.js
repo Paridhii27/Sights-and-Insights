@@ -89,22 +89,53 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Test endpoint to verify ElevenLabs API key
+// Test endpoint to verify ElevenLabs API key using direct HTTP call
 app.get("/api/test-elevenlabs", async (req, res) => {
   try {
-    const audioClient = getElevenLabsClient();
-    if (!audioClient) {
+    const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
+
+    if (!apiKey) {
       return res.status(500).json({
         error: "ElevenLabs API key is not configured",
-        apiKeySet: !!elevenlabsApiKey,
-        apiKeyLength: elevenlabsApiKey?.length || 0,
+        apiKeySet: false,
+        apiKeyLength: 0,
       });
     }
 
-    // Try a simple API call to verify the key works
-    // Using a very short test text
+    // Test using direct HTTP call to verify the key works
+    // This bypasses the SDK to see if it's an SDK issue
+    const testResponse = await fetch("https://api.elevenlabs.io/v1/user", {
+      method: "GET",
+      headers: {
+        "xi-api-key": apiKey,
+      },
+    });
+
+    const testData = await testResponse.json().catch(() => ({}));
+
+    if (!testResponse.ok) {
+      return res.status(testResponse.status).json({
+        error: "ElevenLabs API key authentication failed",
+        statusCode: testResponse.status,
+        statusText: testResponse.statusText,
+        response: testData,
+        apiKeyLength: apiKey.length,
+        apiKeyPreview:
+          apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length - 4),
+      });
+    }
+
+    // If user endpoint works, try a simple TTS call
+    const audioClient = getElevenLabsClient();
+    if (!audioClient) {
+      return res.status(500).json({
+        error: "Failed to initialize ElevenLabs client",
+        userApiWorks: true,
+      });
+    }
+
     const testStream = await audioClient.textToSpeech.convertAsStream(
-      "Yko7PKHZNXotIFUBG7I9", // Default voice
+      "Yko7PKHZNXotIFUBG7I9",
       {
         text: "Test",
         model_id: "eleven_multilingual_v2",
@@ -112,19 +143,20 @@ app.get("/api/test-elevenlabs", async (req, res) => {
       }
     );
 
-    // Just verify we can start the stream
     const firstChunk = await testStream.next();
 
     res.json({
       success: true,
-      message: "ElevenLabs API key is valid",
-      apiKeyLength: elevenlabsApiKey?.length || 0,
+      message: "ElevenLabs API key is valid and TTS works",
+      userInfo: testData,
+      apiKeyLength: apiKey.length,
     });
   } catch (error) {
     console.error("ElevenLabs test error:", error);
     res.status(500).json({
       error: error.message,
       statusCode: error.statusCode,
+      stack: process.env.NODE_ENV !== "production" ? error.stack : undefined,
       apiKeySet: !!elevenlabsApiKey,
       apiKeyLength: elevenlabsApiKey?.length || 0,
     });
@@ -221,7 +253,10 @@ app.post("/api/analyze", async (req, res) => {
         throw new Error("ElevenLabs API key is not configured");
       }
 
+      const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
       console.log("🎵 Attempting audio generation with voice:", voiceId);
+      console.log("🔑 Using API key (length:", (apiKey?.length || 0) + ")");
+
       const audioStream = await audioClient.textToSpeech.convertAsStream(
         voiceId,
         {
@@ -248,14 +283,35 @@ app.post("/api/analyze", async (req, res) => {
       });
     } catch (audioError) {
       // If audio generation fails (e.g., invalid API key), still return the text
-      console.error(
-        "⚠️  Audio generation failed, returning text only:",
-        audioError.message
-      );
-      console.error("Audio error details:", {
-        statusCode: audioError.statusCode,
-        message: audioError.message,
-      });
+      const statusCode =
+        audioError.statusCode || audioError.status || "unknown";
+      const errorMessage = audioError.message || "Unknown error";
+
+      console.error("⚠️  Audio generation failed, returning text only");
+      console.error("   Status code:", statusCode);
+      console.error("   Error message:", errorMessage);
+
+      // Provide helpful error messages based on status code
+      let userFriendlyError = "Audio generation unavailable";
+      if (statusCode === 401) {
+        userFriendlyError =
+          "ElevenLabs API authentication failed. Please check:\n" +
+          "1. API key permissions are enabled in ElevenLabs dashboard\n" +
+          "2. Your subscription plan supports Text-to-Speech\n" +
+          "3. API key is correctly set in Render environment variables";
+        console.error("❌ 401 Unauthorized - Possible causes:");
+        console.error("   - API key permissions not enabled");
+        console.error(
+          "   - Free plan doesn't support TTS (need Creator plan+)"
+        );
+        console.error("   - IP restrictions blocking Render");
+        console.error("   - Invalid or expired API key");
+      } else if (statusCode === 429) {
+        userFriendlyError = "Rate limit exceeded. Please try again later.";
+      } else if (statusCode === 402) {
+        userFriendlyError =
+          "Insufficient credits or subscription required for TTS.";
+      }
 
       // Return text content even if audio fails
       return res.json({
@@ -263,8 +319,8 @@ app.post("/api/analyze", async (req, res) => {
         audio: null,
         audioError:
           process.env.NODE_ENV === "production"
-            ? "Audio generation unavailable"
-            : audioError.message,
+            ? userFriendlyError
+            : `${errorMessage} (Status: ${statusCode})`,
       });
     }
   } catch (error) {
