@@ -34,7 +34,7 @@ h1 {
   font-size: clamp(28px, 8vw, 35px);
   width: calc(100% - 40px);
   max-width: 375px;
-  margin: 15px auto;
+  margin: 10px auto;
   margin-bottom: 5px;
   background-color: var(--primary-blue);
   color: var(--bg-color);
@@ -200,26 +200,6 @@ h2 {
   border-radius: 10px;
 }
 
-/* .analysis-text {
-  font-family: "Lexend", sans-serif;
-  font-size: clamp(0.9em, 3.5vw, 1em);
-  line-height: 1.6;
-  color: var(--dark-text);
-  max-height: 190px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary-blue) var(--bg-color);
-  border-radius: 10px;
-  border: 3px solid var(--primary-blue);
-  padding: 15px 20px;
-  margin-top: 5px;
-  background-color: var(--bg-color);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  box-sizing: border-box;
-} */
-
 .analysis-text {
   font-family: "Lexend", sans-serif;
   font-size: clamp(0.9em, 3.5vw, 1em);
@@ -368,6 +348,8 @@ h2 {
   h1 {
     font-size: clamp(24px, 7vw, 32px);
     padding: 8px 15px;
+    margin: 10px auto;
+    margin-bottom: 5px;
   }
 }
 
