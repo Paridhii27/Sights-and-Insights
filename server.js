@@ -65,79 +65,79 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Test endpoint to verify ElevenLabs API key using direct HTTP call
-app.get("/api/test-elevenlabs", async (req, res) => {
-  try {
-    const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
+// // Test endpoint to verify ElevenLabs API key using direct HTTP call
+// app.get("/api/test-elevenlabs", async (req, res) => {
+//   try {
+//     const apiKey = process.env.ELEVENLABS_API_KEY?.trim() || elevenlabsApiKey;
 
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "ElevenLabs API key is not configured",
-        apiKeySet: false,
-        apiKeyLength: 0,
-      });
-    }
+//     if (!apiKey) {
+//       return res.status(500).json({
+//         error: "ElevenLabs API key is not configured",
+//         apiKeySet: false,
+//         apiKeyLength: 0,
+//       });
+//     }
 
-    // Test using direct HTTP call to verify the key works
-    // This bypasses the SDK to see if it's an SDK issue
-    const testResponse = await fetch("https://api.elevenlabs.io/v1/user", {
-      method: "GET",
-      headers: {
-        "xi-api-key": apiKey,
-      },
-    });
+//     // Test using direct HTTP call to verify the key works
+//     // This bypasses the SDK to see if it's an SDK issue
+//     const testResponse = await fetch("https://api.elevenlabs.io/v1/user", {
+//       method: "GET",
+//       headers: {
+//         "xi-api-key": apiKey,
+//       },
+//     });
 
-    const testData = await testResponse.json().catch(() => ({}));
+//     const testData = await testResponse.json().catch(() => ({}));
 
-    if (!testResponse.ok) {
-      return res.status(testResponse.status).json({
-        error: "ElevenLabs API key authentication failed",
-        statusCode: testResponse.status,
-        statusText: testResponse.statusText,
-        response: testData,
-        apiKeyLength: apiKey.length,
-        apiKeyPreview:
-          apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length - 4),
-      });
-    }
+//     if (!testResponse.ok) {
+//       return res.status(testResponse.status).json({
+//         error: "ElevenLabs API key authentication failed",
+//         statusCode: testResponse.status,
+//         statusText: testResponse.statusText,
+//         response: testData,
+//         apiKeyLength: apiKey.length,
+//         apiKeyPreview:
+//           apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length - 4),
+//       });
+//     }
 
-    // If user endpoint works, try a simple TTS call
-    const audioClient = getElevenLabsClient();
-    if (!audioClient) {
-      return res.status(500).json({
-        error: "Failed to initialize ElevenLabs client",
-        userApiWorks: true,
-      });
-    }
+//     // If user endpoint works, try a simple TTS call
+//     const audioClient = getElevenLabsClient();
+//     if (!audioClient) {
+//       return res.status(500).json({
+//         error: "Failed to initialize ElevenLabs client",
+//         userApiWorks: true,
+//       });
+//     }
 
-    const testStream = await audioClient.textToSpeech.convertAsStream(
-      "Yko7PKHZNXotIFUBG7I9",
-      {
-        text: "Test",
-        model_id: "eleven_multilingual_v2",
-        output_format: "mp3_44100_128",
-      }
-    );
+//     const testStream = await audioClient.textToSpeech.convertAsStream(
+//       "Yko7PKHZNXotIFUBG7I9",
+//       {
+//         text: "Test",
+//         model_id: "eleven_multilingual_v2",
+//         output_format: "mp3_44100_128",
+//       }
+//     );
 
-    const firstChunk = await testStream.next();
+//     const firstChunk = await testStream.next();
 
-    res.json({
-      success: true,
-      message: "ElevenLabs API key is valid and TTS works",
-      userInfo: testData,
-      apiKeyLength: apiKey.length,
-    });
-  } catch (error) {
-    console.error("ElevenLabs test error:", error);
-    res.status(500).json({
-      error: error.message,
-      statusCode: error.statusCode,
-      stack: process.env.NODE_ENV !== "production" ? error.stack : undefined,
-      apiKeySet: !!elevenlabsApiKey,
-      apiKeyLength: elevenlabsApiKey?.length || 0,
-    });
-  }
-});
+//     res.json({
+//       success: true,
+//       message: "ElevenLabs API key is valid and TTS works",
+//       userInfo: testData,
+//       apiKeyLength: apiKey.length,
+//     });
+//   } catch (error) {
+//     console.error("ElevenLabs test error:", error);
+//     res.status(500).json({
+//       error: error.message,
+//       statusCode: error.statusCode,
+//       stack: process.env.NODE_ENV !== "production" ? error.stack : undefined,
+//       apiKeySet: !!elevenlabsApiKey,
+//       apiKeyLength: elevenlabsApiKey?.length || 0,
+//     });
+//   }
+// });
 
 app.post("/api/analyze", async (req, res) => {
   try {
